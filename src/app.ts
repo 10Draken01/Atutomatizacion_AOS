@@ -10,6 +10,11 @@ const PORT = process.env.PORT || 8000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'movilesdb';
 const JWT_SECRET = process.env.JWT_SECRET || 'defaultsecret'; 
+const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || 'your-access-key-id';
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || 'your-secret-access-key';
+const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET || 'your-s3-bucket-name';
+const AWS_SESION_TOKEN = process.env.AWS_SESION_TOKEN || 'your-session-token'; // Optional, if using temporary credentials
 
 // Middleware
 app.use(express.json());
@@ -23,11 +28,23 @@ async function bootstrap() {
   try {
     // Initialize container
     const container = Container.getInstance();
-    await container.initialize(MONGO_URI, DB_NAME, JWT_SECRET);
+    await container.initialize(
+      MONGO_URI, 
+      DB_NAME, 
+      JWT_SECRET,
+      AWS_REGION, 
+      AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY, 
+      AWS_S3_BUCKET,
+      AWS_SESION_TOKEN
+    );
 
     // Setup routes WITHOUT global validation middleware
     const userRoutes = container.getUserRoutes();
-    app.use('/api', userRoutes.getRouter());
+    app.use('/api/users', userRoutes.getRouter());
+
+    const clienteRoutes = container.getClienteRoutes();
+    app.use('/api/clientes', clienteRoutes.getRouter());
 
     // Global error handler
     app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

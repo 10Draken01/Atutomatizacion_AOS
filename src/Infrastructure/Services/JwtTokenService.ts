@@ -35,12 +35,21 @@ export class JwtTokenService implements TokenService {
     return new Promise((resolve, reject) => {
       jwt.verify(token, this.secret, (error, decoded) => {
         if (error) {
-          reject(new Error('Invalid or expired token'));
+          reject(error);
         } else {
           resolve(decoded);
         }
       });
     });
+  }
+
+  // Método síncrono para casos donde no necesites Promise
+  verifyTokenSync(token: string): any {
+    try {
+      return jwt.verify(token, this.secret);
+    } catch (error) {
+      throw error;
+    }
   }
 
   async refreshToken(token: string): Promise<string> {

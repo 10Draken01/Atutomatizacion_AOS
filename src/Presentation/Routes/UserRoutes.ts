@@ -11,10 +11,10 @@ export class UserRoutes {
   }
 
   private setupRoutes(): void {
-    this.router.post('/users/register', validateRegister, (req, res) => 
+    this.router.post('/register', validateRegister, (req, res) => 
       this.userController.register(req, res)
     );
-    this.router.post('/users/login', validateLogin, (req, res) => 
+    this.router.post('/login', validateLogin, (req, res) => 
       this.userController.login(req, res)
     );
   }

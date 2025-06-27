@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 
-export class UserId {
+export class Id {
   private readonly value: string;
 
   constructor(id?: string) {
@@ -11,7 +11,7 @@ export class UserId {
     return this.value;
   }
 
-  equals(other: UserId): boolean {
+  equals(other: Id): boolean {
     return this.value === other.getValue();
   }
 }

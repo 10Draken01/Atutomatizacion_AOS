@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { UserAlreadyExistsException } from '../../Application/Exceptions/UserAlreadyExistsException';
-import { RegisterUseCase } from '../../Application/UseCases/RegisterUserUseCase';
+import { RegisterUseCase } from '../../Application/UseCases/User/RegisterUserUseCase';
 import { RegisterRequest } from '../../Application/DTOs/Register/RegisterRequest';
 import { UserNotExistsException } from '../../Application/Exceptions/UserNotExistsException';
 import { LoginRequest } from '../../Application/DTOs/Login/LoginRequest';
-import { LoginUseCase } from '../../Application/UseCases/LoginUserUseCase';
+import { LoginUseCase } from '../../Application/UseCases/User/LoginUserUseCase';
 
 export class UserController {
   constructor(

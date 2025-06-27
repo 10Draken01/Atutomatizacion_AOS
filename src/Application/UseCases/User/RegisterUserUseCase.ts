@@ -1,13 +1,13 @@
-import { User } from "../../Domain/Entities/User";
-import { UserRepository } from "../../Domain/Repositories/UserRepository";
-import { PasswordHasher } from "../../Domain/Services/PasswordHasher";
-import { Email } from "../../Domain/ValueObjects/Email";
-import { Password } from "../../Domain/ValueObjects/Password";
-import { UserId } from "../../Domain/ValueObjects/UserId";
-import { Username } from "../../Domain/ValueObjects/Username";
-import { RegisterRequest } from "../DTOs/Register/RegisterRequest";
-import { RegisterResponse } from "../DTOs/Register/RegisterResponse";
-import { UserAlreadyExistsException } from "../Exceptions/UserAlreadyExistsException";
+import { User } from "../../../Domain/Entities/User";
+import { UserRepository } from "../../../Domain/Repositories/UserRepository";
+import { PasswordHasher } from "../../../Domain/Services/PasswordHasher";
+import { Email } from "../../../Domain/ValueObjects/Email";
+import { Password } from "../../../Domain/ValueObjects/Password";
+import { Id } from "../../../Domain/ValueObjects/UserId";
+import { Username } from "../../../Domain/ValueObjects/Username";
+import { RegisterRequest } from "../../DTOs/Register/RegisterRequest";
+import { RegisterResponse } from "../../DTOs/Register/RegisterResponse";
+import { UserAlreadyExistsException } from "../../Exceptions/UserAlreadyExistsException";
 
 
 export class RegisterUseCase {
@@ -18,7 +18,7 @@ export class RegisterUseCase {
 
   async execute(request: RegisterRequest): Promise<RegisterResponse> {
     // Validar datos de entrada usando Value Objects
-    const userId = new UserId();
+    const userId = new Id();
     const username = new Username(request.username);
     const email = new Email(request.email);
     const password = await Password.create(request.password, this.passwordHasher); // En un caso real, deberías hashear la contraseña
