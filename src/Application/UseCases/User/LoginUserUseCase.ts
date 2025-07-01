@@ -5,6 +5,7 @@ import { Email } from "../../../Domain/ValueObjects/Email";
 import { Password } from "../../../Domain/ValueObjects/Password";
 import { LoginRequest } from "../../DTOs/Login/LoginRequest";
 import { LoginResponse } from "../../DTOs/Login/LoginResponse";
+import { InvalidPasswordException } from "../../Exceptions/InvalidPasswordException";
 import { UserNotExistsException } from "../../Exceptions/UserNotExistsException";
 
 
@@ -25,8 +26,10 @@ export class LoginUseCase {
       throw new UserNotExistsException(email.getValue());
     }
 
-    if (await Password.validate(request.password, existingUser.password, this.passwordHasher) === false) {
-      throw new Error('Contraseña incorrecta');
+    const passwordValidated = await this.passwordHasher.compare(request.password, existingUser.password);
+
+    if (!passwordValidated) {
+      throw new InvalidPasswordException('Contraseña incorrecta');
     }
 
     const tokenPayload = {

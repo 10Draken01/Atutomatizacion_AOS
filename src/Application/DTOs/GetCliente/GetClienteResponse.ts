@@ -1,6 +1,6 @@
 import { Character_Icon_type } from "../../../Domain/Entities/Character_Icon_type";
 
-export interface CreateClienteResponse {
+export interface GetClienteResponse {
   id: string;
   clave_cliente: number | string;
   nombre: string;

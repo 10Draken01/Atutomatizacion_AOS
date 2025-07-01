@@ -1,6 +1,6 @@
 import { Cliente } from "../../../Domain/Entities/Cliente";
 import { ClienteRepository } from "../../../Domain/Repositories/ClienteRepository";
-import { S3Service } from "../../../Domain/Services/S3Service";
+import { DriveService } from "../../../Domain/Services/DriveService";
 import { Celular } from "../../../Domain/ValueObjects/Celular";
 import { Character_Icon } from "../../../Domain/ValueObjects/Character_Icon";
 import { Clave_Cliente } from "../../../Domain/ValueObjects/Clave_Cliente";
@@ -10,12 +10,13 @@ import { Id } from "../../../Domain/ValueObjects/UserId";
 import { CreateClienteRequest } from "../../DTOs/CreateCliente/CreateClienteRequest";
 import { CreateClienteResponse } from "../../DTOs/CreateCliente/CreateClienteResponse";
 import { ClienteAlreadyExistsException } from "../../Exceptions/ClienteAlreadyExistsException";
+import { InvalidCharacterIconException } from "../../Exceptions/InvalidCharacterIconException";
 
 
 export class CreateClienteUseCase {
     constructor(
         private readonly clienteRepository: ClienteRepository,
-        private readonly s3Service: S3Service // Asumimos que tienes un servicio para manejar S3
+        private readonly driveService: DriveService 
     ) { }
 
     async execute(request: CreateClienteRequest): Promise<CreateClienteResponse> {
@@ -35,11 +36,28 @@ export class CreateClienteUseCase {
 
         // Verificar que character_icon sea un file
         let character_icon: Character_Icon = new Character_Icon(0); // Valor por defecto
-        if (request.character_icon.typeof === 'string' || request.character_icon.typeof === 'number') {
+        // Verificar que character_icon sea un file
+        if (typeof request.character_icon === 'string') {
+            // Convertir a Number y que sea del 0 al 9 1 caracter
+            const regexNumeric09 = /^[0-9]{1}$/;
+            if (!regexNumeric09.test(request.character_icon)) {
+                throw new InvalidCharacterIconException(request.character_icon);
+            }
+            request.character_icon = new Character_Icon(Number(request.character_icon));
+        } else if (typeof request.character_icon === 'number') {
+            if (request.character_icon < 0 || request.character_icon > 9) {
+                throw new InvalidCharacterIconException(request.character_icon.toString());
+            }
             character_icon = new Character_Icon(request.character_icon);
         } else {
-            character_icon = new Character_Icon(await this.s3Service.uploadFile(request.character_icon, claveCliente.getValue()));
+            const { fileId, imageUrl } = await this.driveService.uploadImageToDrive(request.character_icon, claveCliente.getValue());
+            character_icon = new Character_Icon({
+                id: fileId,
+                url: imageUrl
+            });
         }
+
+        const date = new Date();
 
         const newCliente: Cliente = {
             id: id.getValue(), // Generar un ID único
@@ -48,9 +66,11 @@ export class CreateClienteUseCase {
             celular: celular.getValue(),
             email: email.getValue(),
             character_icon: character_icon.getValue(), // Asumimos que es un número o string
+            created_at: date, // Fecha de creación
+            updated_at: date, // Fecha de actualización
         }
 
-        await this.clienteRepository.save(newCliente);
+        await this.clienteRepository.createCliente(newCliente);
 
         // Retornar respuesta
         return {
@@ -60,6 +80,8 @@ export class CreateClienteUseCase {
             email: newCliente.email,
             celular: newCliente.celular,
             character_icon: newCliente.character_icon,
+            created_at: newCliente.created_at || new Date(),
+            updated_at: newCliente.updated_at || new Date(),
         };
     }
 }

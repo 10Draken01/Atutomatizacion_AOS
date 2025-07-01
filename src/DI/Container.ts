@@ -1,5 +1,9 @@
 
 import { CreateClienteUseCase } from '../Application/UseCases/Cliente/CreateClienteUseCase';
+import { DeleteClienteUseCase } from '../Application/UseCases/Cliente/DeleteClienteUseCase';
+import { GetClienteUseCase } from '../Application/UseCases/Cliente/GetClienteUseCase';
+import { GetPageClientesUseCase } from '../Application/UseCases/Cliente/GetPageClientesUseCase';
+import { UpdateClienteUseCase } from '../Application/UseCases/Cliente/UpdateClienteUseCase';
 import { LoginUseCase } from '../Application/UseCases/User/LoginUserUseCase';
 import { RegisterUseCase } from '../Application/UseCases/User/RegisterUserUseCase';
 import { S3Service } from '../Domain/Services/S3Service';
@@ -8,6 +12,7 @@ import { DatabaseConnection } from '../infrastructure/Database/mongo/DatabaseCon
 import { MongoClienteRepository } from '../infrastructure/Database/mongo/MongoClienteRepository';
 import { MongoUserRepository } from '../infrastructure/Database/mongo/MongoUserRepository';
 import { BcryptPasswordHasher } from '../infrastructure/Services/BcryptPasswordHasher';
+import { DriveApi } from '../infrastructure/Services/DriveApi';
 import { JwtTokenService } from '../infrastructure/Services/JwtTokenService';
 import { S3UploaderService } from '../infrastructure/Services/S3Uploader';
 import { ClienteController } from '../Presentation/Controllers/ClienteController';
@@ -26,6 +31,10 @@ export class Container {
   private registerUseCase: RegisterUseCase | null = null;
   private loginUseCase: LoginUseCase | null = null;
   private createClienteUseCase: CreateClienteUseCase | null = null; // Assuming you have a use case for creating Cliente
+  private updateClienteUseCase: UpdateClienteUseCase | null = null; // Assuming you have a use case for updating Cliente
+  private getPageClientesUseCase: GetPageClientesUseCase | null = null; // Assuming you have a use case for getting paginated Clientes
+  private getClienteUseCase: GetClienteUseCase | null = null; // Assuming you have a use case for getting a specific Cliente
+  private deleteClienteUseCase: DeleteClienteUseCase | null = null;
 
   private userController: UserController | null = null;
   private userRoutes: UserRoutes | null = null;
@@ -48,9 +57,9 @@ export class Container {
     return Container.instance;
   }
 
-  async initialize(connectionString: string, databaseName: string, secret: string, region: string, accessKeyId: string, secretAccessKey: string, bucketName: string, session_token: string): Promise<void> {
+  async initialize(connectionString: string, databaseName: string, secret: string, folderId: string): Promise<void> {
     const database = await this.databaseConnection.connect(connectionString, databaseName);
-    const s3Service = new S3UploaderService(region, accessKeyId, secretAccessKey, bucketName, session_token); // Assuming you have a service for S3 uploads
+    const driveService = new DriveApi(folderId)
 
     // Services
     this.passwordHasher = new BcryptPasswordHasher();
@@ -65,8 +74,23 @@ export class Container {
     this.loginUseCase = new LoginUseCase(this.userRepository, this.passwordHasher, this.tokenService);
     this.createClienteUseCase = new CreateClienteUseCase(
       this.clienteRepository,
-      s3Service
+      driveService
     );
+    this.updateClienteUseCase = new UpdateClienteUseCase(
+      this.clienteRepository,
+      driveService
+    );
+    this.getPageClientesUseCase = new GetPageClientesUseCase(
+      this.clienteRepository
+    );
+    this.getClienteUseCase = new GetClienteUseCase(
+      this.clienteRepository
+    );
+    this.deleteClienteUseCase = new DeleteClienteUseCase(
+      this.clienteRepository,
+      driveService
+    );
+
 
     // Controllers
     this.userController = new UserController(
@@ -74,7 +98,11 @@ export class Container {
       this.loginUseCase
     );
     this.clientesController = new ClienteController(
-      this.createClienteUseCase
+      this.createClienteUseCase,
+      this.updateClienteUseCase,
+      this.getPageClientesUseCase,
+      this.getClienteUseCase,
+      this.deleteClienteUseCase
     );
 
     // Routes

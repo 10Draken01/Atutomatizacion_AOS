@@ -2,9 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import { google, drive_v3 } from 'googleapis';
 import { DriveService } from '../../Domain/Services/DriveService';
+import { Readable } from 'stream';
 
 // Ruta al archivo de credenciales
-const KEYFILEPATH = path.join(__dirname, 'service-account-key.json');
+const KEYFILEPATH = path.join(__dirname, 'apipm-464221-1669bb9b132d.json');
 
 // Alcances requeridos para la API de Drive
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
@@ -15,13 +16,17 @@ const auth = new google.auth.GoogleAuth({
   scopes: SCOPES,
 });
 
+
+
 // Cliente Drive
 const drive: drive_v3.Drive = google.drive({ version: 'v3', auth });
 
 export class DriveApi implements DriveService {
-  private readonly folderId: string = '1wZo5tDeCy5Iv-VHGsuDqH1ZD3_t2IvJE';
+  private readonly folderId: string;
 
-  constructor() {}
+  constructor(folder_id: string) {
+    this.folderId = folder_id;
+  }
 
   async deleteImageFromDrive(fileId: string): Promise<boolean> {
     try {
@@ -33,20 +38,25 @@ export class DriveApi implements DriveService {
     }
   }
 
-  async uploadImageToDrive(filePath: string, fileName: string, mimeType: string): Promise<{ fileId: string; imageUrl: string }> {
+  async uploadImageToDrive(file: any, fileName: string): Promise<{ fileId: string; imageUrl: string }> {
     try {
       const fileMetadata = {
         name: fileName,
         parents: [this.folderId],
       };
 
+      // Convertir el Buffer a un Stream readable
+      const bufferStream = new Readable();
+      bufferStream.push(file.buffer);
+      bufferStream.push(null); // Indica el final del stream
+
       const media = {
-        mimeType: mimeType,
-        body: fs.createReadStream(filePath),
+        mimeType: file.mimetype,
+        body: bufferStream,
       };
 
       const response = await drive.files.create({
-        requestBody: fileMetadata, // CORREGIDO: antes estaba mal como "resource"
+        requestBody: fileMetadata,
         media,
         fields: 'id',
       });
@@ -64,11 +74,6 @@ export class DriveApi implements DriveService {
       });
 
       const imageUrl = `https://drive.google.com/uc?id=${fileId}`;
-
-      // Elimina el archivo temporal después de subirlo (opcional)
-      fs.unlink(filePath, (err) => {
-        if (err) console.warn(`No se pudo eliminar archivo temporal: ${filePath}`);
-      });
 
       return { fileId, imageUrl };
     } catch (error) {

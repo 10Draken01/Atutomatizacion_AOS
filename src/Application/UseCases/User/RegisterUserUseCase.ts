@@ -21,7 +21,11 @@ export class RegisterUseCase {
     const userId = new Id();
     const username = new Username(request.username);
     const email = new Email(request.email);
-    const password = await Password.create(request.password, this.passwordHasher); // En un caso real, deberías hashear la contraseña
+    const password = new Password(request.password); // En un caso real, deberías hashear la contraseña
+
+    // Hashear la contraseña antes de guardarla
+    const hashedPassword = await this.passwordHasher.hash(password.getValue());
+    password.setHashedPassword(hashedPassword); // Actualizar el objeto Password con el hash
 
     // Verificar que el usuario no exista
     const existingUser = await this.userRepository.findByEmail(email.getValue());
