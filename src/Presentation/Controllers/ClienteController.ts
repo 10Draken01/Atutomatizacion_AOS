@@ -21,14 +21,14 @@ export class ClienteController {
   async createCliente(req: Request, res: Response): Promise<void> {
     try {
 
-      const character_icon = req.file ?? req.body.character_icon;
+      const characterIcon = req.file ?? req.body.characterIcon;
 
       const request: CreateClienteRequest = {
-        clave_cliente: req.body.clave_cliente,
+        claveCliente: req.body.claveCliente,
         nombre: req.body.nombre,
         celular: req.body.celular,
         email: req.body.email,
-        character_icon,
+        characterIcon: characterIcon, // Asumiendo que characterIcon puede ser un archivo o un número
       };
 
       if (req.file) {
@@ -39,6 +39,7 @@ export class ClienteController {
 
       res.status(200).json({
         success: true,
+        message: 'Cliente con clave ' + response.claveCliente + ' creado correctamente.',
         data: response,
       });
     } catch (error) {
@@ -72,14 +73,14 @@ export class ClienteController {
 
   async updateCliente(req: Request, res: Response): Promise<void> {
     try {
-      const character_icon = req.file ?? req.body.character_icon;
+      const characterIcon = req.file ?? req.body.characterIcon;
 
       const request: CreateClienteRequest = {
-        clave_cliente: req.params.clave_cliente, // Asumiendo que la clave del cliente se pasa como parámetro de ruta
+        claveCliente: req.params.clave_cliente, // Asumiendo que la clave del cliente se pasa como parámetro de ruta
         nombre: req.body.nombre,
         celular: req.body.celular,
         email: req.body.email,
-        character_icon: character_icon,
+        characterIcon: characterIcon,
       };
 
       if (req.file) {
@@ -155,12 +156,13 @@ export class ClienteController {
 
   async getCliente(req: Request, res: Response): Promise<void> {
     try {
-      const clave_cliente = req.params.clave_cliente; // Asumiendo que la clave del cliente se pasa como parámetro de ruta
+      const claveCliente = req.params.claveCliente; // Asumiendo que la clave del cliente se pasa como parámetro de ruta
 
-      const response = await this.getClienteUseCase.execute({ clave_cliente });
+      const response = await this.getClienteUseCase.execute({ claveCliente });
 
       res.status(200).json({
         success: true,
+        message: `Cliente con clave ${claveCliente} obtenido correctamente.`,
         data: response,
       });
     } catch (error) {
@@ -185,13 +187,13 @@ export class ClienteController {
 
   deleteCliente(req: Request, res: Response): void {
     try{
-      const clave_cliente = req.params.clave_cliente; 
+      const claveCliente = req.params.claveCliente; 
 
-      const response = this.deleteClienteUseCase.execute({ clave_cliente });
+      this.deleteClienteUseCase.execute({ claveCliente });
 
       res.status(200).json({
         success: true,
-        message: `Cliente con clave ${clave_cliente} eliminado correctamente.`,
+        message: `Cliente con clave ${claveCliente} eliminado correctamente.`,
       });
     } catch (error) {
       console.error('Error al obtener cliente:', error);

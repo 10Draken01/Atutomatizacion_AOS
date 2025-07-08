@@ -1,3 +1,3 @@
 export interface GetClienteRequest {
-  clave_cliente: number | string;
+  claveCliente: number | string;
 }

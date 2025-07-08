@@ -2,17 +2,17 @@ import { MongoClient, Db, Collection } from 'mongodb';
 import { User } from '../../../Domain/Entities/User';
 import { ClienteRepository } from '../../../Domain/Repositories/ClienteRepository';
 import { Cliente } from '../../../Domain/Entities/Cliente';
-import { Character_Icon_type } from '../../../Domain/Entities/Character_Icon_type';
+import { CharacterIcontype } from '../../../Domain/Entities/CharacterIcontype';
 
 interface ClienteDocument {
   _id: string;
-  clave_cliente: string;
+  claveCliente: string;
   nombre: string;
   celular: string;
   email: string;
-  character_icon: number | Character_Icon_type;
-  created_at: Date;
-  updated_at: Date;
+  characterIcon: number | CharacterIcontype;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export class MongoClienteRepository implements ClienteRepository {
@@ -26,27 +26,27 @@ export class MongoClienteRepository implements ClienteRepository {
   private documentToEntity(document: ClienteDocument): Cliente {
     return {
       id: document._id,
-      clave_cliente: document.clave_cliente,
+      claveCliente: document.claveCliente,
       nombre: document.nombre,
       celular: document.celular,
       email: document.email,
-      character_icon: document.character_icon,
-      created_at: document.created_at,
-      updated_at: document.updated_at 
+      characterIcon: document.characterIcon,
+      createdAt: document.createdAt,
+      updatedAt: document.updatedAt 
     };
   }
 
   // Método helper para convertir entidad a documento
   private entityToDocument(cliente: Cliente): ClienteDocument {
-    const baseDocument = {
+    const baseDocument: ClienteDocument = {
       _id: cliente.id,
-      clave_cliente: cliente.clave_cliente,
+      claveCliente: cliente.claveCliente,
       nombre: cliente.nombre,
       celular: cliente.celular,
       email: cliente.email,
-      character_icon: cliente.character_icon,
-      created_at: cliente.created_at,
-      updated_at: cliente.updated_at
+      characterIcon: cliente.characterIcon,
+      createdAt: cliente.createdAt,
+      updatedAt: cliente.updatedAt
     };
 
     return baseDocument;
@@ -87,8 +87,8 @@ export class MongoClienteRepository implements ClienteRepository {
       };
 
       // Solo agregar campos si tienen valores válidos
-      if (cliente.clave_cliente != null && cliente.clave_cliente.trim() !== '') {
-        updateFields.clave_cliente = cliente.clave_cliente.trim();
+      if (cliente.claveCliente != null && cliente.claveCliente.trim() !== '') {
+        updateFields.claveCliente = cliente.claveCliente.trim();
       }
 
       if (cliente.nombre != null && cliente.nombre.trim() !== '') {
@@ -103,21 +103,21 @@ export class MongoClienteRepository implements ClienteRepository {
         updateFields.email = cliente.email.trim();
       }
 
-      if (cliente.character_icon != null) {
-        updateFields.character_icon = cliente.character_icon;
+      if (cliente.characterIcon != null) {
+        updateFields.characterIcon = cliente.characterIcon;
       }
 
-      updateFields.updated_at = cliente.updated_at;
+      updateFields.updatedAt = cliente.updatedAt;
 
       // Si no hay campos para actualizar (solo timestamp), no hacer nada
       if (Object.keys(updateFields).length === 1) {
         // Solo devolver el cliente existente sin cambios
-        const existing = await this.collection.findOne({ clave_cliente: cliente.clave_cliente });
+        const existing = await this.collection.findOne({ claveCliente: cliente.claveCliente });
         return existing ? this.documentToEntity(existing) : null;
       }
 
       const result = await this.collection.findOneAndUpdate(
-        { clave_cliente: cliente.clave_cliente },
+        { claveCliente: cliente.claveCliente },
         { $set: updateFields },
         { 
           returnDocument: 'after',

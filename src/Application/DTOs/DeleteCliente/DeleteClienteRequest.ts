@@ -1,3 +1,3 @@
 export interface DeleteClienteRequest {
-  clave_cliente: number | string;
+  claveCliente: number | string;
 }

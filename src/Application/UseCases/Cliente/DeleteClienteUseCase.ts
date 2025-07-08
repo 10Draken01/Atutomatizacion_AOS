@@ -1,6 +1,6 @@
 import { ClienteRepository } from "../../../Domain/Repositories/ClienteRepository";
 import { DriveService } from "../../../Domain/Services/DriveService";
-import { Clave_Cliente } from "../../../Domain/ValueObjects/Clave_Cliente";
+import { ClaveCliente } from "../../../Domain/ValueObjects/ClaveCliente";
 import { Page } from "../../../Domain/ValueObjects/Page";
 import { DeleteClienteRequest } from "../../DTOs/DeleteCliente/DeleteClienteRequest";
 import { DeleteClienteResponse } from "../../DTOs/DeleteCliente/DeleteClienteResponse";
@@ -19,33 +19,33 @@ export class DeleteClienteUseCase {
 
     async execute(request: DeleteClienteRequest): Promise<DeleteClienteResponse> {
         // Validar datos de entrada usando Value Objects
-        const clave_cliente = new Clave_Cliente(request.clave_cliente);
+        const claveCliente = new ClaveCliente(request.claveCliente);
 
         // Obtener el cliente por clave_cliente
-        const cliente = await this.clienteRepository.deleteByClaveCliente(clave_cliente.getValue());
+        const cliente = await this.clienteRepository.deleteByClaveCliente(claveCliente.getValue());
 
         if (!cliente) {
-            throw new ClienteNotExistsException(clave_cliente.getValue());
+            throw new ClienteNotExistsException(claveCliente.getValue());
         }
 
-        // Si el cliente tiene un character_icon, eliminarlo del servicio de Drive
-        if (cliente.character_icon && typeof cliente.character_icon === 'object' && 'id' in cliente.character_icon) {
-            // Asumimos que character_icon es un objeto con un id
-            await this.driveService.deleteImageFromDrive(cliente.character_icon.id);
+        // Si el cliente tiene un characterIcon, eliminarlo del servicio de Drive
+        if (cliente.characterIcon && typeof cliente.characterIcon === 'object' && 'id' in cliente.characterIcon) {
+            // Asumimos que characterIcon es un objeto con un id
+            await this.driveService.deleteImageFromDrive(cliente.characterIcon.id);
         }
 
         // Retornar respuesta
         return {
-            message: `Cliente con clave ${clave_cliente.getValue()} eliminado correctamente.`,
+            message: `Cliente con clave ${claveCliente.getValue()} eliminado correctamente.`,
             cliente: {
                 id: cliente.id,
-                clave_cliente: cliente.clave_cliente,
+                claveCliente: cliente.claveCliente,
                 nombre: cliente.nombre,
                 celular: cliente.celular,
                 email: cliente.email,
-                character_icon: cliente.character_icon, // Asumimos que es un número o string
-                created_at: cliente.created_at,
-                updated_at: cliente.updated_at
+                characterIcon: cliente.characterIcon, // Asumimos que es un número o string
+                createdAt: cliente.createdAt,
+                updatedAt: cliente.updatedAt
             }
         };
     }

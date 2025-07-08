@@ -3,8 +3,8 @@ import { ClienteUpdated } from "../../../Domain/Entities/ClienteUpdated";
 import { ClienteRepository } from "../../../Domain/Repositories/ClienteRepository";
 import { DriveService } from "../../../Domain/Services/DriveService";
 import { Celular } from "../../../Domain/ValueObjects/Celular";
-import { Character_Icon } from "../../../Domain/ValueObjects/Character_Icon";
-import { Clave_Cliente } from "../../../Domain/ValueObjects/Clave_Cliente";
+import { CharacterIcon } from "../../../Domain/ValueObjects/CharacterIcon";
+import { ClaveCliente } from "../../../Domain/ValueObjects/ClaveCliente";
 import { Email } from "../../../Domain/ValueObjects/Email";
 import { Nombre } from "../../../Domain/ValueObjects/Nombre";
 import { UpdateClienteRequest } from "../../DTOs/UpdateCliente/UpdateClienteRequest";
@@ -21,7 +21,7 @@ export class UpdateClienteUseCase {
 
     async execute(request: UpdateClienteRequest): Promise<UpdateClienteResponse> {
         // Validar datos de entrada usando Value Objects
-        const claveCliente = new Clave_Cliente(request.clave_cliente);
+        const claveCliente = new ClaveCliente(request.claveCliente);
         // Verificar que el cliente no exista
         const existingCliente = await this.clienteRepository.findByClaveCliente(claveCliente.getValue());
 
@@ -29,29 +29,29 @@ export class UpdateClienteUseCase {
             throw new ClienteNotExistsException(claveCliente.getValue());
         }
 
-        if (request.character_icon) {
+        if (request.characterIcon) {
             // Verificar que character_icon sea un file
-            if (typeof existingCliente.character_icon === "object") {
+            if (typeof existingCliente.characterIcon === "object") {
                 // Borrar la imagen de drive si es un objeto
-                if (existingCliente.character_icon.id) {
-                    await this.driveService.deleteImageFromDrive(existingCliente.character_icon.id);
+                if (existingCliente.characterIcon.id) {
+                    await this.driveService.deleteImageFromDrive(existingCliente.characterIcon.id);
                 }
             }
-            if (typeof request.character_icon === 'string') {
+            if (typeof request.characterIcon === 'string') {
                 // Convertir a Number y que sea del 0 al 9 1 caracter
                 const regexNumeric09 = /^[0-9]{1}$/;
-                if (!regexNumeric09.test(request.character_icon)) {
-                    throw new InvalidCharacterIconException(request.character_icon);
+                if (!regexNumeric09.test(request.characterIcon)) {
+                    throw new InvalidCharacterIconException(request.characterIcon);
                 }
-                request.character_icon = new Character_Icon(Number(request.character_icon));
-            } else if(typeof request.character_icon === 'number'){
-                if (request.character_icon < 0 || request.character_icon > 9) {
-                    throw new InvalidCharacterIconException(request.character_icon.toString());
+                request.characterIcon = new CharacterIcon(Number(request.characterIcon));
+            } else if(typeof request.characterIcon === 'number'){
+                if (request.characterIcon < 0 || request.characterIcon > 9) {
+                    throw new InvalidCharacterIconException(request.characterIcon.toString());
                 }
-                request.character_icon = new Character_Icon(request.character_icon);
+                request.characterIcon = new CharacterIcon(request.characterIcon);
             } else {
-                const { fileId, imageUrl } = await this.driveService.uploadImageToDrive(request.character_icon, claveCliente.getValue());
-                request.character_icon = new Character_Icon({
+                const { fileId, imageUrl } = await this.driveService.uploadImageToDrive(request.characterIcon, claveCliente.getValue());
+                request.characterIcon = new CharacterIcon({
                     id: fileId,
                     url: imageUrl
                 });
@@ -59,13 +59,13 @@ export class UpdateClienteUseCase {
         }
 
         const clienteToUpdate: ClienteUpdated | null = {
-            clave_cliente: claveCliente.getValue(),
+            claveCliente: claveCliente.getValue(),
             nombre: request.nombre,
             celular: request.celular,
             email: request.email,
-            character_icon: request.character_icon.getValue(), // Mantener el mismo character_icon
-            created_at: existingCliente.created_at, // Mantener la fecha de creación
-            updated_at: new Date(), // Actualizar la fecha de actualización
+            characterIcon: request.characterIcon.getValue(), // Mantener el mismo character_icon
+            createdAt: existingCliente.createdAt, // Mantener la fecha de creación
+            updatedAt: new Date(), // Actualizar la fecha de actualización
         }
 
         console.log(`Cliente a actualizar: ${JSON.stringify(clienteToUpdate)}`);
@@ -79,13 +79,13 @@ export class UpdateClienteUseCase {
         // Retornar respuesta
         return {
             id: clienteUpdated.id,
-            clave_cliente: clienteUpdated.clave_cliente,
+            claveCliente: clienteUpdated.claveCliente,
             nombre: clienteUpdated.nombre,
             email: clienteUpdated.email,
             celular: clienteUpdated.celular,
-            character_icon: clienteUpdated.character_icon,
-            created_at: clienteUpdated.created_at,
-            updated_at: clienteUpdated.updated_at,
+            characterIcon: clienteUpdated.characterIcon,
+            createdAt: clienteUpdated.createdAt,
+            updatedAt: clienteUpdated.updatedAt,
         };
     }
 }

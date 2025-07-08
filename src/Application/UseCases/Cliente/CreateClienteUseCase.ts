@@ -2,8 +2,8 @@ import { Cliente } from "../../../Domain/Entities/Cliente";
 import { ClienteRepository } from "../../../Domain/Repositories/ClienteRepository";
 import { DriveService } from "../../../Domain/Services/DriveService";
 import { Celular } from "../../../Domain/ValueObjects/Celular";
-import { Character_Icon } from "../../../Domain/ValueObjects/Character_Icon";
-import { Clave_Cliente } from "../../../Domain/ValueObjects/Clave_Cliente";
+import { CharacterIcon } from "../../../Domain/ValueObjects/CharacterIcon";
+import { ClaveCliente } from "../../../Domain/ValueObjects/ClaveCliente";
 import { Email } from "../../../Domain/ValueObjects/Email";
 import { Nombre } from "../../../Domain/ValueObjects/Nombre";
 import { Id } from "../../../Domain/ValueObjects/UserId";
@@ -22,7 +22,7 @@ export class CreateClienteUseCase {
     async execute(request: CreateClienteRequest): Promise<CreateClienteResponse> {
         // Validar datos de entrada usando Value Objects
         const id = new Id()
-        const claveCliente = new Clave_Cliente(request.clave_cliente);
+        const claveCliente = new ClaveCliente(request.claveCliente);
         const nombre = new Nombre(request.nombre);
         const celular = new Celular(request.celular); // Asumimos que el celular es
         const email = new Email(request.email);
@@ -35,23 +35,23 @@ export class CreateClienteUseCase {
         }
 
         // Verificar que character_icon sea un file
-        let character_icon: Character_Icon = new Character_Icon(0); // Valor por defecto
+        let characterIcon: CharacterIcon = new CharacterIcon(0); // Valor por defecto
         // Verificar que character_icon sea un file
-        if (typeof request.character_icon === 'string') {
+        if (typeof request.characterIcon === 'string') {
             // Convertir a Number y que sea del 0 al 9 1 caracter
             const regexNumeric09 = /^[0-9]{1}$/;
-            if (!regexNumeric09.test(request.character_icon)) {
-                throw new InvalidCharacterIconException(request.character_icon);
+            if (!regexNumeric09.test(request.characterIcon)) {
+                throw new InvalidCharacterIconException(request.characterIcon);
             }
-            request.character_icon = new Character_Icon(Number(request.character_icon));
-        } else if (typeof request.character_icon === 'number') {
-            if (request.character_icon < 0 || request.character_icon > 9) {
-                throw new InvalidCharacterIconException(request.character_icon.toString());
+            request.characterIcon = new CharacterIcon(Number(request.characterIcon));
+        } else if (typeof request.characterIcon === 'number') {
+            if (request.characterIcon < 0 || request.characterIcon > 9) {
+                throw new InvalidCharacterIconException(request.characterIcon.toString());
             }
-            character_icon = new Character_Icon(request.character_icon);
+            characterIcon = new CharacterIcon(request.characterIcon);
         } else {
-            const { fileId, imageUrl } = await this.driveService.uploadImageToDrive(request.character_icon, claveCliente.getValue());
-            character_icon = new Character_Icon({
+            const { fileId, imageUrl } = await this.driveService.uploadImageToDrive(request.characterIcon, claveCliente.getValue());
+            characterIcon = new CharacterIcon({
                 id: fileId,
                 url: imageUrl
             });
@@ -61,13 +61,13 @@ export class CreateClienteUseCase {
 
         const newCliente: Cliente = {
             id: id.getValue(), // Generar un ID único
-            clave_cliente: claveCliente.getValue(),
+            claveCliente: claveCliente.getValue(),
             nombre: nombre.getValue(),
             celular: celular.getValue(),
             email: email.getValue(),
-            character_icon: character_icon.getValue(), // Asumimos que es un número o string
-            created_at: date, // Fecha de creación
-            updated_at: date, // Fecha de actualización
+            characterIcon: characterIcon.getValue(), // Asumimos que es un número o string
+            createdAt: date, // Fecha de creación
+            updatedAt: date, // Fecha de actualización
         }
 
         await this.clienteRepository.createCliente(newCliente);
@@ -75,13 +75,13 @@ export class CreateClienteUseCase {
         // Retornar respuesta
         return {
             id: newCliente.id,
-            clave_cliente: newCliente.clave_cliente,
+            claveCliente: newCliente.claveCliente,
             nombre: newCliente.nombre,
             email: newCliente.email,
             celular: newCliente.celular,
-            character_icon: newCliente.character_icon,
-            created_at: newCliente.created_at || new Date(),
-            updated_at: newCliente.updated_at || new Date(),
+            characterIcon: newCliente.characterIcon,
+            createdAt: newCliente.createdAt || new Date(),
+            updatedAt: newCliente.updatedAt || new Date(),
         };
     }
 }

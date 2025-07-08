@@ -20,16 +20,16 @@ export const validateLogin = (req: Request, res: Response, next: NextFunction): 
 };
 
 export const validateCreateCliente = (req: Request, res: Response, next: NextFunction): void => {
-  const { clave_cliente, nombre, celular, email } = req.body;
+  const { claveCliente, nombre, celular, email } = req.body;
 
-  if (!clave_cliente || !nombre || !celular || !email) {
+  if (!claveCliente || !nombre || !celular || !email) {
     // Respuesta de error con campos faltantes y especificando la ruta y un ejemplo de uso
     res.status(400).json({
       success: false,
       error: 'Validation Error',
-      message: 'Todos los campos clave_cliente, nombre, celular y email son requeridos en el cuerpo de la solicitud.',
+      message: 'Todos los campos claveCliente, nombre, celular y email son requeridos en el cuerpo de la solicitud.',
       missingFields: [
-        !clave_cliente ? 'clave_cliente' : undefined,
+        !claveCliente ? 'claveCliente' : undefined,
         !nombre ? 'nombre' : undefined,
         !celular ? 'celular' : undefined,
         !email ? 'email' : undefined
@@ -40,17 +40,17 @@ export const validateCreateCliente = (req: Request, res: Response, next: NextFun
 
   // Validación previa del archivo (opcional, depende de tu lógica de negocio)
   const file = (req as any).file;
-  if (!file?.buffer && !req.body.character_icon) {
+  if (!file?.buffer && !req.body.characterIcon) {
     res.status(400).json({
       success: false,
       error: 'Validation Error',
-      message: 'El campo character_icon (archivo o numero) es requerido en el cuerpo de la solicitud.',
+      message: 'El campo characterIcon (archivo o numero) es requerido en el cuerpo de la solicitud.',
       example: {
-        clave_cliente: '123',
+        claveCliente: '123',
         nombre: 'Juan Perez',
         celular: '5551234567',
         email: 'juan@example.com',
-        character_icon: '<archivo o numero>'
+        characterIcon: '<archivo o numero>'
       }
     });
     return;
@@ -61,30 +61,30 @@ export const validateCreateCliente = (req: Request, res: Response, next: NextFun
 
 
 export const validateUpdateCliente = (req: Request, res: Response, next: NextFunction): void => {
-  const clave_cliente_params = req.params.clave_cliente;
+  const claveClienteParams = req.params.claveCliente;
 
-  if (!clave_cliente_params) {
+  if (!claveClienteParams) {
     res.status(400).json({
       success: false,
       error: 'Validation Error',
-      message: 'El parámetro clave_cliente es requerido en la ruta. Ejemplo: PUT http://localhost:3000/api/clientes/1',
-      missingField: 'clave_cliente'
+      message: 'El parámetro claveCliente es requerido en la ruta. Ejemplo: PUT http://localhost:3000/api/clientes/1',
+      missingField: 'claveCliente'
     });
     return;
   }
 
   // Validar que al menos un campo a actualizar esté presente en el body
-  const { nombre, celular, email, character_icon } = req.body;
-  if (!nombre && !celular && !email && !character_icon && !(req as any).file?.buffer) {
+  const { nombre, celular, email, characterIcon } = req.body;
+  if (!nombre && !celular && !email && !characterIcon && !(req as any).file?.buffer) {
     res.status(400).json({
       success: false,
       error: 'Validation Error',
-      message: 'Debe proporcionar al menos un campo para actualizar: nombre, celular, email o character_icon.',
+      message: 'Debe proporcionar al menos un campo para actualizar: nombre, celular, email o characterIcon.',
       example: {
         nombre: 'Nuevo Nombre',
         celular: '5551234567',
         email: 'nuevo@email.com',
-        character_icon: '<archivo o numero>'
+        characterIcon: '<archivo o numero>'
       }
     });
     return;
@@ -109,13 +109,13 @@ export const validateGetClientes = (req: Request, res: Response, next: NextFunct
 };
 
 export const validateGetCliente = (req: Request, res: Response, next: NextFunction): void => {
-  const clave_cliente = req.params.clave_cliente;
+  const claveCliente = req.params.claveCliente;
 
-  if (!clave_cliente) {
+  if (!claveCliente) {
     res.status(400).json({
       success: false,
       error: 'Validation Error',
-      message: 'Clave cliente es requerida en los parámetros de la ruta. /:clave_cliente ejemplo: GET:http://localhost:3000/api/clientes/1'
+      message: 'Clave cliente es requerida en los parámetros de la ruta. /:claveCliente ejemplo: GET:http://localhost:3000/api/clientes/1'
     });
     return;
   }
@@ -124,13 +124,13 @@ export const validateGetCliente = (req: Request, res: Response, next: NextFuncti
 };
 
 export const validateDeleteCliente = (req: Request, res: Response, next: NextFunction): void => {
-  const clave_cliente = req.params.clave_cliente;
+  const claveCliente = req.params.claveCliente;
 
-  if (!clave_cliente) {
+  if (!claveCliente) {
     res.status(400).json({
       success: false,
       error: 'Validation Error',
-      message: 'Clave cliente es requerida en los parámetros de la ruta. /:clave_cliente ejemplo: DELETE:http://localhost:3000/api/clientes/1'
+      message: 'Clave cliente es requerida en los parámetros de la ruta. /:claveCliente ejemplo: DELETE:http://localhost:3000/api/clientes/1'
     });
     return;
   }

@@ -18,19 +18,19 @@ export class ClienteRoutes {
   private setupRoutes(): void {
     const auth = AuthMiddleware(this.tokenService);
 
-    this.router.post('/', auth, uploadMiddleware.single('character_icon'), validateCreateCliente, (req, res) => 
+    this.router.post('/', auth, uploadMiddleware.single('characterIcon'), validateCreateCliente, (req, res) => 
       this.clienteController.createCliente(req, res)
     );
-    this.router.put('/:clave_cliente', auth, uploadMiddleware.single('character_icon'), validateUpdateCliente, (req, res) => 
+    this.router.put('/:claveCliente', auth, uploadMiddleware.single('characterIcon'), validateUpdateCliente, (req, res) => 
       this.clienteController.updateCliente(req, res)
     );
     this.router.get('/page/:page', auth, validateGetClientes, (req, res) => 
       this.clienteController.getPageClientes(req, res)
     );
-    this.router.get('/:clave_cliente', auth, validateGetCliente, (req, res) => 
+    this.router.get('/:claveCliente', auth, validateGetCliente, (req, res) => 
       this.clienteController.getCliente(req, res)
     );
-    this.router.delete('/:clave_cliente', auth, (req, res) => 
+    this.router.delete('/:claveCliente', auth, (req, res) => 
       this.clienteController.deleteCliente(req, res)
     );
   }

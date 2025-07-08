@@ -1,6 +1,6 @@
 import { ClienteRepository } from "../../../Domain/Repositories/ClienteRepository";
 import { DriveService } from "../../../Domain/Services/DriveService";
-import { Clave_Cliente } from "../../../Domain/ValueObjects/Clave_Cliente";
+import { ClaveCliente } from "../../../Domain/ValueObjects/ClaveCliente";
 import { Page } from "../../../Domain/ValueObjects/Page";
 import { GetClienteRequest } from "../../DTOs/GetCliente/GetClienteRequest";
 import { GetClienteResponse } from "../../DTOs/GetCliente/GetClienteResponse";
@@ -16,24 +16,24 @@ export class GetClienteUseCase {
 
     async execute(request: GetClienteRequest): Promise<GetClienteResponse> {
         // Validar datos de entrada usando Value Objects
-        const clave_cliente = new Clave_Cliente(request.clave_cliente);
+        const claveCliente = new ClaveCliente(request.claveCliente);
 
-        // Obtener el cliente por clave_cliente
-        const cliente = await this.clienteRepository.findByClaveCliente(clave_cliente.getValue());
+        // Obtener el cliente por claveCliente
+        const cliente = await this.clienteRepository.findByClaveCliente(claveCliente.getValue());
 
         if (!cliente) {
-            throw new ClienteNotExistsException(clave_cliente.getValue());
+            throw new ClienteNotExistsException(claveCliente.getValue());
         }
         // Retornar respuesta
         return {
             id: cliente.id,
-            clave_cliente: cliente.clave_cliente,
+            claveCliente: cliente.claveCliente,
             nombre: cliente.nombre,
             celular: cliente.celular,
             email: cliente.email,
-            character_icon: cliente.character_icon, // Asumimos que es un número o string
-            created_at: cliente.created_at,
-            updated_at: cliente.updated_at
+            characterIcon: cliente.characterIcon, // Asumimos que es un número o string
+            createdAt: cliente.createdAt,
+            updatedAt: cliente.updatedAt
         };
     }
 }

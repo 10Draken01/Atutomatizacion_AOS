@@ -5,7 +5,7 @@ import { DriveService } from '../../Domain/Services/DriveService';
 import { Readable } from 'stream';
 
 // Ruta al archivo de credenciales
-const KEYFILEPATH = path.join(__dirname, 'apipm-464221-1669bb9b132d.json');
+const KEYFILEPATH = path.join(__dirname, 'apipm-key.json');
 
 // Alcances requeridos para la API de Drive
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
