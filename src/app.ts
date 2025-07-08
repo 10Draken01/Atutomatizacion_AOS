@@ -22,7 +22,7 @@ app.get('/health', (req, res) => {
 async function bootstrap() {
   try {
     // Initialize container
-    const container = Container.getInstance();
+    const container = Container.getInstance(); 
     await container.initialize(
       MONGO_URI, 
       DB_NAME, 
