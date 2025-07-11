@@ -19,7 +19,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-async function bootstrap() {
+export async function bootstrap() {
   try {
     // Initialize container
     const container = Container.getInstance(); 
@@ -81,5 +81,3 @@ async function bootstrap() {
     process.exit(1);
   }
 }
-
-bootstrap();
