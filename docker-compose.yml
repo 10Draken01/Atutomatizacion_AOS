@@ -1,0 +1,154 @@
+# =============================================
+# VERSIÓN DE DOCKER COMPOSE
+# =============================================
+version: '3.8'
+# ¿Qué hace? Define qué características de Docker Compose podemos usar
+# 3.8 = Compatible con Docker Engine 19.03+ (incluye todas las features modernas)
+# Si pones versión menor, algunas características no funcionan
+
+# =============================================
+# SERVICIOS (CONTENEDORES)
+# =============================================
+services:
+# ¿Qué hace? Define todos los contenedores que van a trabajar juntos
+# Cada servicio = un contenedor diferente
+# Los servicios se pueden comunicar entre sí usando sus nombres
+
+  # ==========================================
+  # SERVICIO 1: TU API TYPESCRIPT
+  # ==========================================
+  api:
+  # ¿Qué hace? Nombre del servicio para tu API
+  # Otros servicios pueden conectarse usando "api" como hostname
+  # Ejemplo: desde mongodb puedes hacer ping a "api"
+  
+    build: .
+    # ¿Qué hace? Construye imagen Docker usando tu Dockerfile
+    # "." = directorio actual (donde está tu Dockerfile)
+    # Equivale a ejecutar: docker build -t proyecto_api .
+    # Alternativa: image: "nombre_imagen" para usar imagen ya construida
+    
+    container_name: api_core
+    # ¿Qué hace? Nombre específico para el contenedor
+    # Sin esto: Docker genera nombre automático como "proyecto_api_1"
+    # Con esto: Siempre se llama "api_core"
+    # Útil para logs y debugging
+    
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    # ¿Qué hace? Mapea puertos HOST:CONTENEDOR
+    # ${PORT:-8000} = usa variable PORT del .env, si no existe usa 8000
+    # Ejemplo: si PORT=3000 en .env → "3000:3000"
+    # Permite acceder desde tu navegador: http://localhost:8000
+    
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT:-8000}
+      - MONGO_ROOT_USER=${MONGO_ROOT_USER:-user_example}
+      - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-password_example}
+      - DB_NAME=${DB_NAME:-exampledb}
+      - JWT_SECRET=${JWT_SECRET}
+      - FOLDER_ID=${FOLDER_ID}
+    # ¿Qué hace? Variables de entorno dentro del contenedor
+    # NODE_ENV → process.env.NODE_ENV en tu código TypeScript
+    # MONGO_URI → Dirección para conectarse a MongoDB
+    # IMPORTANTE: "mongodb" = nombre del servicio MongoDB (no localhost)
+    # JWT_SECRET → Sin default porque es sensible (debe estar en .env)
+    
+    depends_on:
+      - mongodb
+    # ¿Qué hace? Orden de inicio de contenedores
+    # MongoDB se inicia ANTES que la API
+    # NOTA: Solo garantiza orden, no que MongoDB esté "listo para conexiones"
+    # Para eso necesitarías healthcheck (más avanzado)
+    
+    restart: unless-stopped
+    # ¿Qué hace? Política de reinicio automático
+    # unless-stopped = reinicia si se crashea, excepto si lo paras manualmente
+    # Opciones: no, always, on-failure, unless-stopped
+    
+    networks:
+      - core_network
+    # ¿Qué hace? Conecta el contenedor a una red específica
+    # Permite comunicación segura con otros servicios en la misma red
+    # Sin esto: Docker crea red por defecto, pero menos control
+
+  # ==========================================
+  # SERVICIO 2: MONGODB
+  # ==========================================
+  mongodb:
+  # ¿Qué hace? Nombre del servicio de base de datos
+  # Tu API se conecta usando este nombre: mongodb://mongodb:27017
+  
+    image: mongo:7.0
+    # ¿Qué hace? Usa imagen oficial de MongoDB versión 7.0
+    # Se descarga automáticamente de Docker Hub
+    # 7.0 = versión estable y moderna
+    # Alternativas: mongo:6.0, mongo:latest (no recomendado latest)
+    
+    container_name: core_database
+    # ¿Qué hace? Nombre fijo para el contenedor MongoDB
+    # Útil para conectarte directamente: docker exec -it core_database mongosh
+
+    ports:
+      - "27017:27017"
+    # ¿Qué hace? Expone puerto de MongoDB al host
+    # Permite conectar MongoDB Compass desde tu máquina
+    # 27017 = puerto estándar de MongoDB
+    # OPCIONAL: Si solo tu API necesita acceso, puedes omitir esto
+    
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-user_example}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-password_example}
+      - MONGO_INITDB_DATABASE=${DB_NAME:-exampledb}
+    # ¿Qué hace? Configuración inicial de MongoDB
+    # MONGO_INITDB_ROOT_USERNAME = usuario administrador
+    # MONGO_INITDB_ROOT_PASSWORD = contraseña del admin
+    # MONGO_INITDB_DATABASE = base de datos que se crea automáticamente
+    # Se ejecutan solo en el PRIMER inicio del contenedor
+    
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    # ¿Qué hace? Dos tipos de volúmenes:
+    # mongodb_data:/data/db = volumen nombrado para PERSISTIR datos
+    # ./mongo-init = carpeta con scripts de inicialización (opcional)
+    # /data/db = directorio interno donde MongoDB guarda datos
+    
+    restart: unless-stopped
+    # ¿Qué hace? Reinicio automático igual que la API
+    # Crucial para base de datos - si se crashea, se reinicia automáticamente
+    
+    networks:
+      - core_network
+    # ¿Qué hace? Conecta MongoDB a la misma red que la API
+    # Permite que "api" encuentre "mongodb" por nombre
+
+    command: mongod --auth
+    # ¿Qué hace? Comando personalizado para iniciar MongoDB
+    # --auth = habilita autenticación (requiere usuario/password)
+    # Sin esto: MongoDB acepta conexiones sin autenticación (inseguro)
+
+# =============================================
+# VOLÚMENES NOMBRADOS
+# =============================================
+volumes:
+  mongodb_data:
+    driver: local
+# ¿Qué hace? Define volúmenes para almacenamiento persistente
+# mongodb_data = nombre del volumen (referenciado arriba en mongodb service)
+# driver: local = almacena en el disco local de Docker
+# Ubicación física: /var/lib/docker/volumes/proyecto_mongodb_data/
+# CRÍTICO: Sin esto, datos se pierden al eliminar contenedor
+
+# =============================================
+# REDES PERSONALIZADAS
+# =============================================
+networks:
+  core_network:
+    driver: bridge
+    name: core_network
+# ¿Qué hace? Crea red personalizada para comunicación entre contenedores
+# driver: bridge = red local en un solo host (para aplicaciones locales)
+# name: core_network = nombre específico (opcional)
+# Ventaja: aislamiento de otros proyectos Docker en tu máquina
