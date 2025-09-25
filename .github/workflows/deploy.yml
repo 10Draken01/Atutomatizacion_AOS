@@ -45,11 +45,11 @@ jobs:
     - name: 🔨 Build Docker image (SOLO API)
       run: |
         docker build -t ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} .
-        docker build -t ${{ env.DOCKER_IMAGE_NAME }}:latest .
+        docker tag ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ env.DOCKER_IMAGE_NAME }}:latest
         
     - name: 💾 Save Docker image
       run: |
-        docker save ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} > api-image.tar
+        docker save ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ env.DOCKER_IMAGE_NAME }}:latest > api-image.tar
         
     - name: 📤 Upload Docker image artifact
       uses: actions/upload-artifact@v4
