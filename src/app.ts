@@ -14,7 +14,7 @@ export async function bootstrap() {
   try {
     
     app.get('/hello_world', (req, res) => {
-      res.json({ message: 'Hello World!!!' });
+      res.json({ message: 'Hello World Desplegado!!!' });
     });
 
     // Global error handler
