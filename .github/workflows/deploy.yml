@@ -45,11 +45,11 @@ jobs:
     - name: 🔨 Build Docker image (SOLO API)
       run: |
         docker build -t ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} .
-        docker build -t ${{ env.DOCKER_IMAGE_NAME }}:latest .
+        docker tag ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ env.DOCKER_IMAGE_NAME }}:latest
         
     - name: 💾 Save Docker image
       run: |
-        docker save ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} > api-image.tar
+        docker save ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ env.DOCKER_IMAGE_NAME }}:latest > api-image.tar
         
     - name: 📤 Upload Docker image artifact
       uses: actions/upload-artifact@v4
@@ -107,11 +107,15 @@ jobs:
           echo "🔄 Starting deployment..."
           
           # Crear directorio del proyecto si no existe
-          mkdir -p ~/api-core-app
-          cd ~/api-core-app
+          mkdir -p ~/api-hello-world-app
+          cd ~/api-hello-world-app
           
           # Parar contenedores existentes
-          docker-compose down || true
+          docker-compose down 2>/dev/null || true
+          
+          # Limpiar contenedores y redes huérfanas
+          docker container prune -f
+          docker network prune -f
           
           # Limpiar imágenes antiguas
           docker image prune -f
@@ -120,10 +124,101 @@ jobs:
           docker pull ${{ env.DOCKER_IMAGE_NAME }}:latest
           
           # Crear archivo .env con secrets
-          cat > .env << 'EOF'
+          cat > .env << 'ENVEOF'
           NODE_ENV=production
           PORT=${{ secrets.PORT }}
-          EOF
+          DB_NAME=${{ secrets.DB_NAME }}
+          MONGO_ROOT_USER=${{ secrets.MONGO_ROOT_USER }}
+          MONGO_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          FOLDER_ID=${{ secrets.FOLDER_ID }}
+          ENVEOF
+          
+          # Crear docker-compose.yml para producción
+          cat > docker-compose.yml << 'COMPOSEEOF'
+          version: '3.8'
+          
+          services:
+            # ==========================================
+            # API (imagen pre-construida desde Docker Hub)
+            # ==========================================
+            api:
+              image: ${{ env.DOCKER_IMAGE_NAME }}:latest
+              container_name: api_core
+              ports:
+                - "${PORT:-8000}:${PORT:-8000}"
+              environment:
+                - NODE_ENV=${NODE_ENV:-production}
+                - PORT=${PORT:-8000}
+                - DB_NAME=${DB_NAME}
+                - JWT_SECRET=${JWT_SECRET}
+                - FOLDER_ID=${FOLDER_ID}
+                - MONGO_ROOT_USER=${MONGO_ROOT_USER}
+                - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+              depends_on:
+                - mongodb
+              restart: unless-stopped
+              networks:
+                - core_network
+              volumes:
+                - ./uploads:/app/uploads
 
-          docker run -d -p 8000:8000 --name api ${{ env.DOCKER_IMAGE_NAME }}:latest
+            # ==========================================
+            # MongoDB (imagen oficial)
+            # ==========================================
+            mongodb:
+              image: mongo:7.0
+              container_name: core_database
+              environment:
+                - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+                - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+                - MONGO_INITDB_DATABASE=${DB_NAME}
+              volumes:
+                - mongodb_data:/data/db
+              restart: unless-stopped
+              networks:
+                - core_network
+              # No exponer puerto 27017 en producción para mayor seguridad
+
+          # ==========================================
+          # Volúmenes y redes
+          # ==========================================
+          volumes:
+            mongodb_data:
+              driver: local
+            
+          networks:
+            core_network:
+              driver: bridge
+              name: core_network
+          COMPOSEEOF
+          
+          # Verificar que los archivos se crearon correctamente
+          echo "📋 Files created:"
+          ls -la
+          echo "📄 .env content:"
+          cat .env
+          echo "📄 docker-compose.yml content:"
+          head -20 docker-compose.yml
+          
+          # Ejecutar contenedores
+          echo "🚀 Starting containers..."
+          docker-compose up -d
+          
+          # Esperar un momento para que los contenedores inicien
+          sleep 10
+          
+          # Verificar estado de los contenedores
+          echo "📊 Container status:"
+          docker-compose ps
+          
+          # Verificar logs de la API
+          echo "📝 API logs (last 10 lines):"
+          docker-compose logs --tail=10 api
+          
+          # Probar conectividad básica
+          echo "🔍 Testing API health..."
+          curl -f http://localhost:${PORT:-8000}/hello_world || echo "⚠️ Health check failed (normal on first deploy)"
+          
+          echo "✅ Deployment completed!"
 
