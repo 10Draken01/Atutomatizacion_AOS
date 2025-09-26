@@ -12,8 +12,8 @@ app.use(express.json());
 
 export async function bootstrap() {
   try {
-    
-    app.get('/hello_world', (req, res) => {
+
+    app.get('/deploy', (req, res) => {
       res.json({ message: 'Desplegado!!!' });
     });
 
