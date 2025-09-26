@@ -1,50 +1,71 @@
 
 # Automatización del flujo de CI/CD con Docker y AWS en la rama develop
 
+# Automatización del flujo de CI/CD con Docker y AWS
+
+## Protección de la rama develop mediante Pull Requests
+
+### Objetivo
+Configurar que solo se pueda subir código a la rama **develop** mediante Pull Requests (PRs), evitando pushes directos y asegurando revisión de código.
+
+### Pasos para configurar las reglas de rama:
+
+1. **Acceder a la configuración del repositorio**
+   - Ir a tu proyecto en GitHub
+   - Click en **Settings** (Configuración)
+   - En el menú lateral, seleccionar **Rules** (Reglas)
+
+2. **Crear nuevo conjunto de reglas**
+   - Click en **New branch ruleset** (Nuevo conjunto de reglas de rama)
+   - **Ruleset name:** `developRules`
+   - **Enforcement status:** Active
+
+3. **Configurar rama objetivo**
+   - En **Target branches**, click **Add target**
+   - Seleccionar **Include by pattern**
+   - Ingresar: `develop`
+
+4. **Activar reglas de protección**
+   - ✅ **Restrict deletions** (Restringir eliminaciones)
+   - ✅ **Require a pull request before merging** (Requerir PR antes de fusionar)
+     - **Required approvals:** 1 (mínimo)
+     - ✅ **Dismiss stale pull request approvals when new commits are pushed**
+   - ✅ **Block force pushes** (Bloquear force pushes)
+
+5. **Guardar configuración**
+   - Click en **Create** para activar las reglas
+
+### Resultado
+Una vez configurado, cualquier intento de push directo a develop será rechazado con el mensaje:
+```
+remote: error: GH013: Repository rule violations found for refs/heads/develop.
+remote: - Changes must be made through a pull request.
+```
+
 ---
 
-## Configurar que solo se pueda subir código a **develop** mediante Pull Requests (PRs). 
+## Dockerfile
 
-* Ir a proyecto de GitHub
-* Ir a Configuracion
-* Ir a Ramas o Branches
-* Click **Agregar conjunto de reglas de rama** || **Add branch ruleset**
-* Ingresar nombre, en mi caso hice use **developRules**
-* Ingresar rama objetivo, en mi caso use **develop** ya que era la rama a poner restricciones
-* En **Reglas de rama** activar las siguientes opciones:
-   * Restringir eliminaciones || Restict deletions
-   * Requerir una solicitud de extracción antes de fusionar || Require a pull request before merging
-      * Aprobaciones requeridas || Required approvals
-      * Descartar las aprobaciones de pull request obsoletas cuando se envían nuevas confirmaciones || Dismiss stale pull request approvals when new commits are pushed
-      * Bloquear force pushes || Block force pushes
-* Guardar
+### Propósito
+El **Dockerfile** es un archivo de texto que contiene instrucciones para crear una imagen Docker de nuestra aplicación API. Define el entorno, dependencias y configuración necesaria.
 
----
+### Ubicación
+- Crear en la **raíz del proyecto** (mismo nivel que `package.json`)
+- Nombre del archivo: `Dockerfile` (sin extensión)
 
-## DockerFile
-### Aqui tendriamos que crear el archivo **DockerFile** el cual es escencial para crear la imagen de docker en la que correremos nuestra **API**.
+### Comandos básicos explicados
 
-* En la raiz de nuestro proyecto a la altura de **src** creamos un **DockerFile**
-* Primero tendremos que conocer los comandos basicos para poder decirle a docker que hacer:
-   * **FROM:**
-      * Este es importante por que le dice a Docker que tipo de imagen usara como base, en nuestro caso usaremos estos 2:
-         * **node:18** → Node.js v18 en Ubuntu (más pesado)
-         * **node:18-alpine** → Node.js v18 en Alpine Linux (más ligero) 
-         * **Nota:** Hay mas imagenes base que se pueden usar dependiendo las necesidades.
-   * **WORKDIR:**
-      * Esta le dice a **Docker** cual sera su directorio de trabajo, crea una carpeta y ahi trabaja
-   * **COPY:**
-      * Esta le dice a **Docker** copia tal cosa y pegala aqui:
-         * **Ejemplo:** COPY package*.json ./
-      * Lo que copiara es lo que esta en el entorno de el **DockerFile**.
-      * Lo que pegara se ira a el **WORKDIR**
-   * **RUN:**
-      * Este le dice que ejecute algo dentro de la imagen en construccion
-   * **EXPOSE:**
-      * Este le dice a **Docker** que abra ese puerto en el contenedor en construccion
-   * **CMD:**
-      * Este le dice a **Docker** ejecuta este comando cuando el contenedor este en ejecucion
-* Ahora sabiendo esto hacemos lo siguiente:
+| Comando | Propósito | Ejemplo |
+|---------|-----------|---------|
+| **FROM** | Define la imagen base | `FROM node:18-alpine` |
+| **WORKDIR** | Establece directorio de trabajo | `WORKDIR /app` |
+| **COPY** | Copia archivos del host al contenedor | `COPY package*.json ./` |
+| **RUN** | Ejecuta comandos durante la construcción | `RUN npm ci` |
+| **EXPOSE** | Documenta qué puerto usa la app | `EXPOSE 8000` |
+| **CMD** | Comando que se ejecuta al iniciar el contenedor | `CMD ["node", "dist/index.js"]` |
+
+### Dockerfile optimizado (Multi-stage build)
+
 ```dockerfile
 # =============================================
 # STAGE 1: Build (Compilar TypeScript)
@@ -54,10 +75,10 @@ FROM node:18-alpine AS builder
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json y package-lock.json (si existe)
+# Copiar archivos de configuración de npm
 COPY package*.json ./
 
-# Instalar dependencias (incluyendo devDependencies para build)
+# Instalar todas las dependencias (incluye devDependencies para compilar)
 RUN npm ci
 
 # Copiar código fuente
@@ -67,132 +88,203 @@ COPY . .
 RUN npm run build
 
 # =============================================
-# STAGE 2: Production (Imagen final)
+# STAGE 2: Production (Imagen final optimizada)
 # =============================================
 FROM node:18-alpine AS production
 
-# Crear usuario no-root para seguridad
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Crear usuario no-root para mayor seguridad
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 -G nodejs
 
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json y package-lock.json
+# Copiar archivos de configuración
 COPY package*.json ./
 
 # Instalar SOLO dependencias de producción
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production && \
+    npm cache clean --force
 
-# Copiar código compilado desde el stage anterior
+# Copiar código JavaScript compilado desde el stage builder
 COPY --from=builder /app/dist ./dist
 
-# Copiar otros archivos necesarios (si los tienes)
-# COPY --from=builder /app/public ./public
-
-# Cambiar propiedad de archivos al usuario nodejs
+# Cambiar propietario de archivos al usuario nodejs
 RUN chown -R nodejs:nodejs /app
+
+# Cambiar al usuario no-root
 USER nodejs
 
-# Exponer el puerto de la API
+# Documentar que la aplicación usa el puerto 8000
 EXPOSE 8000
 
 # Comando para ejecutar la aplicación
 CMD ["node", "dist/index.js"]
 ```
 
+### Ventajas del Multi-stage build
+- **Imagen más ligera:** Solo contiene dependencias de producción
+- **Más segura:** No incluye herramientas de desarrollo
+- **Mejor rendimiento:** Menos capas y archivos innecesarios
+
 ---
 
-## DockerIgnore
-### Aqui tendriamos que crear el archivo **.dockerignore** el cual es escencial para crear la imagen de docker en la que correremos nuestra **API**
+## .dockerignore
 
-* En la raiz de nuestro proyecto a la altura de **src** creamos un **.dockerignore**
-* Este funciona como el **.gitignore**, el cual ignora todo lo que se especifique dentro al momento de hacer push, con **.dockerignore** es lo mismo pero en momento de construccion 
-* Ahora sabiendo esto hacemos lo siguiente:
+### Propósito
+El archivo **.dockerignore** funciona como `.gitignore` pero para Docker. Define qué archivos y carpetas **NO** incluir en la imagen Docker durante la construcción.
+
+### Ubicación
+- Crear en la **raíz del proyecto** (mismo nivel que `Dockerfile`)
+- Nombre del archivo: `.dockerignore`
+
+### Contenido recomendado
+
 ```dockerignore
-# Dependencias
+# =============================================
+# DEPENDENCIAS (se instalan en el contenedor)
+# =============================================
 node_modules
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Archivos de desarrollo
+# =============================================
+# ARCHIVOS DE ENTORNO (sensibles)
+# =============================================
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Logs
+# =============================================
+# ARCHIVOS DE LOG
+# =============================================
 logs
 *.log
+lerna-debug.log*
 
-# Archivos temporales
+# =============================================
+# ARCHIVOS TEMPORALES
+# =============================================
 .tmp
 .temp
+*.tmp
+*.temp
 
-# IDE/Editor
-.vscode
-.idea
+# =============================================
+# CONFIGURACIÓN DE EDITORES/IDEs
+# =============================================
+.vscode/
+.idea/
 *.swp
 *.swo
+*~
 
-# OS
+# =============================================
+# ARCHIVOS DEL SISTEMA OPERATIVO
+# =============================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Git
-.git
+# =============================================
+# CONTROL DE VERSIONES
+# =============================================
+.git/
 .gitignore
+.gitattributes
 
-# Documentación
+# =============================================
+# DOCUMENTACIÓN Y PRUEBAS
+# =============================================
 README.md
 docs/
-
-# Testing
+documentation/
 coverage/
 .nyc_output
+jest.config.js
 
-# TypeScript
+# =============================================
+# TYPESCRIPT (archivos compilados)
+# =============================================
 *.tsbuildinfo
+tsconfig.json
 
-# Build output (se genera en el container)
+# =============================================
+# BUILD OUTPUT (se genera en el contenedor)
+# =============================================
 dist/
+build/
+
+# =============================================
+# ARCHIVOS DE CONFIGURACIÓN DE DESARROLLO
+# =============================================
+nodemon.json
+.prettierrc*
+.eslintrc*
+webpack.config.js
+
+# =============================================
+# DOCKER (evitar recursión)
+# =============================================
+Dockerfile*
+docker-compose*.yml
+.dockerignore
 ```
+
+### Por qué es importante
+- **Reduce tamaño:** Imágenes más pequeñas y rápidas
+- **Mejora seguridad:** No incluye archivos sensibles como `.env`
+- **Acelera build:** Menos archivos para procesar
+- **Evita conflictos:** No incluye `node_modules` del host
 
 ---
 
-## Docker Compose
-### Aqui tendriamos que crear el archivo **docker-compose.yml** el cual es escencial para crear la imagen de docker en la que correremos nuestra **API**
+## docker-compose.yml para desarrollo local
 
-* En la raiz de nuestro proyecto a la altura de **src** creamos un **docker-compose.example.yml**
-* Este funciona como el instrucciones para poder decirle a docker que tiene que hacer
-* Ahora sabiendo esto hacemos lo siguiente:
-```yml
+### Propósito
+Docker Compose permite definir y ejecutar aplicaciones multi-contenedor. En nuestro caso, orquesta la API y MongoDB trabajando juntos.
+
+### Ubicación
+- Crear en la **raíz del proyecto**
+- Nombre: `docker-compose.yml` (para uso local)
+- Opcionalmente: `docker-compose.example.yml` (template para el repositorio)
+
+### Configuración para desarrollo
+
+```yaml
 version: '3.8'
 
 services:
   # ==========================================
-  # API (imagen pre-construida desde Docker Hub)
+  # API (construida desde Dockerfile local)
   # ==========================================
   api:
-    image: ${{ env.DOCKER_IMAGE_NAME }}:latest
+    build: .                          # Construye usando el Dockerfile local
     container_name: api_core
     ports:
-      - "${PORT:-8000}:${PORT:-8000}"
+      - "8000:8000"                   # Puerto host:contenedor
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
-      - PORT=${PORT:-8000}
-      - DB_NAME=${DB_NAME}
+      - NODE_ENV=development
+      - PORT=8000
+      - MONGO_URI=mongodb://mongodb:27017/coredb
+      - DB_NAME=coredb
       - JWT_SECRET=${JWT_SECRET}
       - FOLDER_ID=${FOLDER_ID}
-      - MONGO_ROOT_USER=${MONGO_ROOT_USER}
-      - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     depends_on:
-      - mongodb
+      - mongodb                       # Espera a que MongoDB inicie primero
     restart: unless-stopped
     networks:
       - core_network
     volumes:
-      - ./uploads:/app/uploads
+      - ./uploads:/app/uploads        # Persistir archivos subidos
+      - ./src:/app/src               # Hot reload durante desarrollo (opcional)
 
   # ==========================================
   # MongoDB (imagen oficial)
@@ -200,30 +292,152 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: core_database
+    ports:
+      - "27017:27017"                # Expuesto para herramientas como MongoDB Compass
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${DB_NAME}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-dev123}
+      - MONGO_INITDB_DATABASE=${DB_NAME:-coredb}
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_data:/data/db         # Persistir datos de la base
+      - ./mongo-init:/docker-entrypoint-initdb.d  # Scripts de inicialización
     restart: unless-stopped
     networks:
       - core_network
-    # No exponer puerto 27017 en producción para mayor seguridad
 
 # ==========================================
-# Volúmenes y redes
+# VOLÚMENES PARA PERSISTENCIA
 # ==========================================
 volumes:
   mongodb_data:
     driver: local
-  
+    name: core_mongodb_data
+
+# ==========================================
+# RED PERSONALIZADA
+# ==========================================
 networks:
   core_network:
     driver: bridge
     name: core_network
-
 ```
+
+### .env.example para variables locales
+
+```bash
+# ==========================================
+# CONFIGURACIÓN DE LA APLICACIÓN
+# ==========================================
+NODE_ENV=development
+PORT=8000
+
+# ==========================================
+# BASE DE DATOS
+# ==========================================
+DB_NAME=coredb
+MONGO_ROOT_USER=admin
+MONGO_ROOT_PASSWORD=dev123
+
+# ==========================================
+# SEGURIDAD
+# ==========================================
+JWT_SECRET=tu-jwt-secret-para-desarrollo-minimo-32-caracteres
+
+# ==========================================
+# SERVICIOS EXTERNOS
+# ==========================================
+FOLDER_ID=tu-folder-id-de-google-drive
+```
+
+### Comandos útiles
+
+```bash
+# Iniciar todos los servicios
+docker-compose up -d
+
+# Ver logs en tiempo real
+docker-compose logs -f
+
+# Ver solo logs de la API
+docker-compose logs -f api
+
+# Parar todos los servicios
+docker-compose down
+
+# Parar y eliminar volúmenes (¡CUIDADO! Pierdes datos)
+docker-compose down -v
+
+# Reconstruir la imagen de la API
+docker-compose build api
+
+# Reiniciar solo la API
+docker-compose restart api
+```
+
+### Diferencias entre desarrollo y producción
+
+| Aspecto | Desarrollo | Producción (EC2) |
+|---------|------------|------------------|
+| **Imagen API** | `build: .` | `image: usuario/api:latest` |
+| **Puerto MongoDB** | Expuesto (27017) | No expuesto |
+| **Variables** | Archivo `.env` local | GitHub Secrets |
+| **Volúmenes** | Hot reload | Solo persistencia |
+| **Reinicio** | Manual | `restart: unless-stopped` |
+
+---
+
+## Archivo .env para desarrollo local
+
+### Crear archivo .env local
+```bash
+# Copiar template
+cp .env.example .env
+
+# Editar con valores reales
+nano .env
+```
+
+### Agregar .env al .gitignore
+```gitignore
+# Variables de entorno
+.env
+.env.local
+.env.production
+```
+
+### Verificar funcionamiento
+```bash
+# Probar configuración local
+docker-compose config
+
+# Iniciar servicios
+docker-compose up -d
+
+# Verificar que funciona
+curl http://localhost:8000/health
+```
+
+---
+
+## Mejores prácticas aplicadas
+
+### Seguridad
+- ✅ Usuario no-root en contenedor
+- ✅ Variables de entorno para secrets
+- ✅ Puerto MongoDB no expuesto en producción
+- ✅ Archivos sensibles en .dockerignore
+
+### Eficiencia
+- ✅ Multi-stage build para imagen ligera
+- ✅ Cache de dependencias con npm ci
+- ✅ Limpieza de cache npm
+- ✅ .dockerignore optimizado
+
+### Mantenibilidad
+- ✅ Documentación clara de cada comando
+- ✅ Variables con valores por defecto
+- ✅ Redes y volúmenes con nombres específicos
+- ✅ Restart policies configuradas
 
 ---
 
