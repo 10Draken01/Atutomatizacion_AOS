@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # API (imagen pre-construida desde Docker Hub)
+  # ==========================================
+  api:
+    image: ${{ env.DOCKER_IMAGE_NAME }}:latest
+    container_name: api_core
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT:-8000}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - FOLDER_ID=${FOLDER_ID}
+      - MONGO_ROOT_USER=${MONGO_ROOT_USER}
+      - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - core_network
+    volumes:
+      - ./uploads:/app/uploads
+
+  # ==========================================
+  # MongoDB (imagen oficial)
+  # ==========================================
+  mongodb:
+    image: mongo:7.0
+    container_name: core_database
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${DB_NAME}
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    networks:
+      - core_network
+    # No exponer puerto 27017 en producción para mayor seguridad
+
+# ==========================================
+# Volúmenes y redes
+# ==========================================
+volumes:
+  mongodb_data:
+    driver: local
+  
+networks:
+  core_network:
+    driver: bridge
+    name: core_network
